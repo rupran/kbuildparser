@@ -1,6 +1,6 @@
 """ Helper module for kbuildparse."""
 
-# Copyright (C) 2014-2015 Andreas Ruprecht <andreas.ruprecht@fau.de>
+# Copyright (C) 2014-2018 Andreas Ziegler <andreas.ziegler@fau.de>
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -14,6 +14,14 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
+#
+# Parts taken from the 'undertaker' project (https://undertaker.cs.fau.de)
+# with the following authors
+# Copyright (C) 2011-2012 Christian Dietrich <christian.dietrich@informatik.uni-erlangen.de>
+# Copyright (C) 2011-2012 Reinhard Tartler <tartler@informatik.uni-erlangen.de>
+# Copyright (C) 2012 Manuel Zerpies <manuel.f.zerpies@ww.stud.uni-erlangen.de>
+# Copyright (C) 2014 Valentin Rothberg <valentinrothberg@gmail.com>
+# Copyright (C) 2012-2015 Stefan Hengelein <stefan.hengelein@fau.de>
 
 import logging
 import os
