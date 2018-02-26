@@ -23,12 +23,9 @@ import re
 import kbuildparse.base_classes as BaseClasses
 import kbuildparse.data_structures as DataStructures
 import kbuildparse.helper as Helper
-import vamos.tools as Tools
-import vamos.golem.kbuild as Kbuild
-import vamos.model as Model
 
 # Helper functions in module
-CONFIG_FORMAT = Model.CONFIG_FORMAT
+CONFIG_FORMAT = r"CONFIG_([A-Za-z0-9_-]+)"
 REGEX_CONFIG = re.compile(CONFIG_FORMAT)
 REGEX_IFNEQ = re.compile(r"\s*(ifneq|ifeq)\s+(.*)")
 REGEX_IFNEQ_CONF = re.compile(r"\(\$\(" + CONFIG_FORMAT +
@@ -56,7 +53,7 @@ def regex_ifneq_match(line, ifdef_condition, global_vars, model):
                              conf_results.group(2) == "m")
             config = conf_results.group(1)
 
-            conf = Tools.get_config_string(config, model)
+            conf = Helper.get_config_string(config, model)
             if positive_keyword == positive_comp:
                 ifdef_condition.add_condition(conf)
             else:
@@ -81,7 +78,7 @@ def regex_ifndef_match(line, ifdef_condition, global_vars, model):
 
         conf_results = REGEX_CONFIG.match(rhs)
         if conf_results:
-            conf = Tools.get_config_string(conf_results.group(1),\
+            conf = Helper.get_config_string(conf_results.group(1),\
                                            model)
             if keyword == "ifdef":
                 ifdef_condition.add_condition(conf)
@@ -173,7 +170,7 @@ class LinuxInit(BaseClasses.InitClass):
         config_item = regex_match.group(2)
         if config_item != "y":
             config_item = regex_match.group(3)
-            condition = Tools.get_config_string(config_item, self.model)
+            condition = Helper.get_config_string(config_item, self.model)
             current_precondition.add_condition(condition)
 
         rhs = regex_match.group(5)
@@ -207,7 +204,7 @@ class LinuxInit(BaseClasses.InitClass):
         config_item = regex_match.group(2)
         if config_item != "y":
             config_item = regex_match.group(3)
-            condition = Tools.get_config_string(config_item, self.model)
+            condition = Helper.get_config_string(config_item, self.model)
             current_precondition.add_condition(condition)
 
         rhs = regex_match.group(5)
@@ -246,7 +243,7 @@ class LinuxInit(BaseClasses.InitClass):
         config_item = regex_match.group(2)
         if config_item != "y":
             config_item = regex_match.group(3)
-            condition = Tools.get_config_string(config_item, self.model)
+            condition = Helper.get_config_string(config_item, self.model)
             current_precondition.add_condition(condition)
 
         rhs = regex_match.group(5)
@@ -277,7 +274,7 @@ class LinuxInit(BaseClasses.InitClass):
 
         with open(path, "r") as infile:
             while True:
-                (good, line) = Tools.get_multiline_from_file(infile)
+                (good, line) = Helper.get_multiline_from_file(infile)
                 if not good:
                     break
 
@@ -332,7 +329,7 @@ class LinuxInit(BaseClasses.InitClass):
 
         with open(path, "r") as infile:
             while True:
-                (good, line) = Tools.get_multiline_from_file(infile)
+                (good, line) = Helper.get_multiline_from_file(infile)
                 if not good:
                     break
 
@@ -517,7 +514,7 @@ class _02_LinuxObjects(BaseClasses.DuringPass):
                                 parser.local_vars["ifdef_condition"][:]
                             )
                     else:
-                        sourcefile = Kbuild.guess_source_for_target(fullpath)
+                        sourcefile = Helper.guess_source_for_target(fullpath)
                         if sourcefile:
                             parser.local_vars["file_features"][sourcefile].\
                                 add_alternative(
@@ -532,7 +529,7 @@ class _02_LinuxObjects(BaseClasses.DuringPass):
                 # Then test obj-$(CONFIG_XY)
                 config = regex_match.group(3)
 
-                condition = Tools.get_config_string(config, self.model)
+                condition = Helper.get_config_string(config, self.model)
 
                 matches = [x for x in re.split("\t| ", rhs) if x]
 
@@ -550,7 +547,7 @@ class _02_LinuxObjects(BaseClasses.DuringPass):
                                 parser.local_vars["ifdef_condition"][:]
                             )
                     else:
-                        sourcefile = Kbuild.guess_source_for_target(fullpath)
+                        sourcefile = Helper.guess_source_for_target(fullpath)
                         if sourcefile:
                             parser.local_vars["file_features"][sourcefile].\
                                 add_alternative(
@@ -572,7 +569,7 @@ class _02_LinuxObjects(BaseClasses.DuringPass):
 
             # If subdir is conditional, add condition to ifdef_condition
             if match.group(1) != "y":
-                condition = Tools.get_config_string(match.group(2), self.model)
+                condition = Helper.get_config_string(match.group(2), self.model)
                 parser.local_vars["ifdef_condition"].add_condition(condition)
 
             rhs = match.group(3)
@@ -684,7 +681,7 @@ class _01_LinuxExpandMacros(BaseClasses.AfterPass):
             config_in_composite = match.group(2)
             condition_comp = ""
             if config_in_composite:
-                condition_comp = Tools.get_config_string(config_in_composite,
+                condition_comp = Helper.get_config_string(config_in_composite,
                                                          self.model)
 
             rhs = match.group(4)
@@ -700,7 +697,7 @@ class _01_LinuxExpandMacros(BaseClasses.AfterPass):
                     parser.local_vars["dir_cond_collection"]\
                         [fullpath].add_alternative(passdown_condition[:])
                 else:
-                    sourcefile = Kbuild.guess_source_for_target(fullpath)
+                    sourcefile = Helper.guess_source_for_target(fullpath)
                     if not sourcefile:
                         self.expand_macro(fullpath, path,passdown_condition,
                                           already_expanded, parser)
@@ -768,9 +765,9 @@ class _03_LinuxOutput(BaseClasses.AfterPass):
 
             full_string = " && ".join(precondition)
 
-            filename = Kbuild.normalize_filename(os.path.relpath(item))
+            filename = os.path.relpath(item)
 
             if full_string:
-                print "FILE_" + filename + " \"" + full_string + "\""
+                print filename + " <- " + full_string
             else:
-                print "FILE_" + filename
+                print filename

@@ -26,16 +26,15 @@ import re
 import sys
 import types
 
-sys.path = [os.path.join(os.path.dirname(sys.path[0]), 'lib',
-                         'python%d.%d' % (sys.version_info[0],
-                                          sys.version_info[1]),
-                         'site-packages')] + sys.path
+sys.path.append(os.path.join(os.path.dirname(sys.path[0]), 'lib',
+                             'python%d.%d' % (sys.version_info[0],
+                                              sys.version_info[1]),
+                             'site-packages'))
+sys.path.append(os.path.dirname(sys.path[0]))
 
-import vamos.model as Model
-import vamos.tools as Tools
 import kbuildparse.base_classes as BaseClasses
 import kbuildparse.data_structures as DataStructures
-import vamos.golem.kbuild as Kbuild
+import kbuildparse.helper as Helper
 
 def parse_args(argv):
     """ Helper function to parse command line arguments and initialize
@@ -63,7 +62,7 @@ def parse_args(argv):
                            action="store_true", default=False)
 
     args = arguments.parse_args(argv)
-    Tools.setup_logging(args.verbose)
+    Helper.setup_logging(args.verbose)
     return args
 
 
@@ -137,7 +136,7 @@ class KbuildParser(object):
         with open(path, "r") as infile:
             dirname = os.path.dirname(path)
             while True:
-                (good, line) = Tools.get_multiline_from_file(infile)
+                (good, line) = Helper.get_multiline_from_file(infile)
                 if not good:
                     break
                 inputs = self.resolve_includes(line, dirname)
@@ -163,7 +162,7 @@ class KbuildParser(object):
 
         with open(target, "r") as infile:
             while True:
-                (good, line) = Tools.get_multiline_from_file(infile)
+                (good, line) = Helper.get_multiline_from_file(infile)
                 if not good:
                     break
                 lines.extend(self.resolve_includes(line, srcpath))
@@ -178,41 +177,26 @@ def main(argv):
     #pylint: disable=R0915
 
     args = parse_args(argv)
-    project = None
+    project = "linux"
     arch = args.arch
 
     if args.check:
     # For validation tests
         arch = "test"
         project = "linux"
-    elif Kbuild.is_linux():
-    # Check if we're inside a Linux tree
-        logging.info("Detected a Linux tree")
-        if not args.arch:
-            sys.exit("E: architecture to analyze must be provided")
-        project = "linux"
-    elif Kbuild.is_busybox():
-    # If it was not Linux, maybe it was busybox?
-        logging.info("Detected a Busybox tree")
-        arch = 'busybox'
-        project = "busybox"
-    elif Kbuild.is_coreboot():
-    # ... or maybe coreboot?
-        logging.info("Detected a Coreboot tree")
-        arch = 'coreboot'
-        project = "coreboot"
 
-    if args.model:
-        modelfile = args.model
-        if not os.path.isfile(modelfile):
-            sys.exit("E: specified model \"%s\" not found" % modelfile)
-    else:
-        modelfile = Model.get_model_for_arch(arch)
-        if not modelfile:
-            sys.exit("E: Model for arch %s not found, generate models using " \
-                     "undertaker-kconfigdump or specify a model (-m)" % arch)
+#    if args.model:
+#        modelfile = args.model
+#        if not os.path.isfile(modelfile):
+#            sys.exit("E: specified model \"%s\" not found" % modelfile)
+#    else:
+#        modelfile = Model.get_model_for_arch(arch)
+#        if not modelfile:
+#            sys.exit("E: Model for arch %s not found, generate models using " \
+#                     "undertaker-kconfigdump or specify a model (-m)" % arch)
 
-    read_model = Model.parse_model(modelfile, shallow=True)
+    #read_model = Model.parse_model(modelfile, shallow=True)
+    read_model = None
     parser = KbuildParser(read_model, arch)
 
     dirs_to_process = collections.OrderedDict()

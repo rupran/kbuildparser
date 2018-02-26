@@ -15,6 +15,10 @@
 # You should have received a copy of the GNU General Public License
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 
+import logging
+import os
+import re
+
 import kbuildparse.data_structures as DataStructures
 
 def build_precondition(input_list, additional=None):
@@ -43,3 +47,69 @@ def build_precondition(input_list, additional=None):
         ret.add_condition(alt_string)
 
     return ret
+
+
+def setup_logging(log_level):
+    """ setup the logging module with the given log_level """
+
+    l = logging.WARNING # default
+    if log_level == 1:
+        l = logging.INFO
+    elif log_level >= 2:
+        l = logging.DEBUG
+
+    logging.basicConfig(level=l)
+
+
+def guess_source_for_target(target):
+    """
+    for the given target, try to determine its source file.
+    generic version for linux and busybox
+
+    return None if no source file could be found
+    """
+    for suffix in ('.c', '.S', '.s', '.l', '.y', '.ppm'):
+        sourcefile = target[:-2] + suffix
+        if os.path.exists(sourcefile):
+            return sourcefile
+    return None
+
+
+def remove_makefile_comment(line):
+    """ Strips everything after the first # (Makefile comment) from a line."""
+    return line.split("#", 1)[0].rstrip()
+
+
+def get_multiline_from_file(infile):
+    """ Reads a line from infile. If the line ends with a line continuation,
+    it is substituted with a space and the next line is appended. Returns
+    (True, line) if reading has succeeded, (False, "") otherwise. The boolean
+    value is required to distinguish an error from empty lines in the input
+    (which might also occur by stripping the comment from a line which only
+    contains that comment)."""
+    line = ""
+    current = infile.readline()
+    if not current:
+        return (False, "")
+    current = remove_makefile_comment(current)
+    while current.endswith('\\'):
+        current = current.replace('\\', ' ')
+        line += current
+        current = infile.readline()
+        if not current:
+            break
+        current = remove_makefile_comment(current)
+    line += current
+    line.rstrip()
+    return (True, line)
+
+
+def get_config_string(item, model=None):
+    """ Return a string with CONFIG_ for a given item. If the item is
+    a tristate symbol in model, CONFIG_$(item)_MODULE is added as an
+    alternative."""
+    if item.startswith("CONFIG_"):
+        item = item[7:]
+    if model and model.get_type(item) == "tristate":
+        return "(CONFIG_" + item + " || CONFIG_" + item + "_MODULE)"
+    return "CONFIG_" + item
