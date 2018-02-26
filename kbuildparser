@@ -2,7 +2,7 @@
 
 """ Parse Kbuild makefiles to extract configurability information."""
 
-# Copyright (C) 2014-2015 Andreas Ruprecht <andreas.ruprecht@fau.de>
+# Copyright (C) 2014-2018 Andreas Ziegler <andreas.ziegler@fau.de>
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -49,11 +49,11 @@ def parse_args(argv):
     arguments.add_argument('-a', '--arch', help="target architecture",
                            default=None)
 
-    arguments.add_argument('-m', '--model', help="specify the model file",
-                           default=None)
+#    arguments.add_argument('-m', '--model', help="specify the model file",
+#                           default=None)
 
-    arguments.add_argument('-c', '--classes', help="subdirectory where parser" +
-                           " class extensions should be searched", default=None)
+#    arguments.add_argument('-c', '--classes', help="subdirectory where parser" +
+#                           " class extensions should be searched", default=None)
 
     arguments.add_argument('directory', help="input directories containing " +
                            "Kbuild/Makefiles", nargs="*")
@@ -202,50 +202,48 @@ def main(argv):
     dirs_to_process = collections.OrderedDict()
 
     # Default to the project default parser if -c was not given
-    if project and not args.classes:
-        project_module = importlib.import_module("kbuildparse" + "." + project)
-        args.classes = os.path.dirname(project_module.__file__)
+    project_module = importlib.import_module("kbuildparse" + "." + project)
+    args.classes = os.path.dirname(project_module.__file__)
 
-    if args.classes:
-        additional_path = os.path.abspath(args.classes)
-        sys.path.append(additional_path)
+    additional_path = os.path.abspath(args.classes)
+    sys.path.append(additional_path)
 
-        # Ignore these modules when loading. This is needed, because
-        # subclass(A, A) == True. We can also avoid unnecessary loading
-        # and checking with this.
-        to_ignore = [x for (_, x) in BaseClasses.__dict__.items() +
-                     DataStructures.__dict__.items()]
+    # Ignore these modules when loading. This is needed, because
+    # subclass(A, A) == True. We can also avoid unnecessary loading
+    # and checking with this.
+    to_ignore = [x for (_, x) in BaseClasses.__dict__.items() +
+                    DataStructures.__dict__.items()]
 
-        # Iterate over additional Python files
-        for pyfile in os.listdir(additional_path):
-            # Ignore internal files and non-Python files
-            if not pyfile.endswith(".py") or pyfile.startswith("__"):
+    # Iterate over additional Python files
+    for pyfile in os.listdir(additional_path):
+        # Ignore internal files and non-Python files
+        if not pyfile.endswith(".py") or pyfile.startswith("__"):
+            continue
+
+        module = importlib.import_module(pyfile[:-3])
+        for (name, cls) in sorted(module.__dict__.items()):
+            # Don't consider internal classes from the file
+            if name.startswith("__"):
                 continue
 
-            module = importlib.import_module(pyfile[:-3])
-            for (name, cls) in sorted(module.__dict__.items()):
-                # Don't consider internal classes from the file
-                if name.startswith("__"):
-                    continue
-
-                # If we ignore it or don't have a class at all, continue
-                if cls in to_ignore or not type(cls) is types.TypeType:
-                    continue
-                # Load classes into respective lists
-                if issubclass(cls, BaseClasses.InitClass):
-                    if parser.init_class is not None:
-                        sys.exit("E: multiple init classes provided!")
-                    parser.init_class = cls(read_model, args.arch)
-                elif issubclass(cls, BaseClasses.BeforePass):
-                    parser.before_pass.append(cls(read_model, args.arch))
-                elif issubclass(cls, BaseClasses.DuringPass):
-                    parser.during_pass.append(cls(read_model, args.arch))
-                elif issubclass(cls, BaseClasses.AfterPass):
-                    parser.after_pass.append(cls(read_model, args.arch))
-                elif issubclass(cls, BaseClasses.BeforeExit):
-                    parser.before_exit.append(cls(read_model, args.arch))
-                else:
-                    logging.warning("W: unknown class %s found!", name)
+            # If we ignore it or don't have a class at all, continue
+            if cls in to_ignore or not type(cls) is types.TypeType:
+                continue
+            # Load classes into respective lists
+            if issubclass(cls, BaseClasses.InitClass):
+                if parser.init_class is not None:
+                    sys.exit("E: multiple init classes provided!")
+                parser.init_class = cls(read_model, args.arch)
+            elif issubclass(cls, BaseClasses.BeforePass):
+                parser.before_pass.append(cls(read_model, args.arch))
+            elif issubclass(cls, BaseClasses.DuringPass):
+                parser.during_pass.append(cls(read_model, args.arch))
+            elif issubclass(cls, BaseClasses.AfterPass):
+                parser.after_pass.append(cls(read_model, args.arch))
+            elif issubclass(cls, BaseClasses.BeforeExit):
+                parser.before_exit.append(cls(read_model, args.arch))
+            else:
+                logging.warning("W: unknown class %s found!", name)
 
     # Execute subclass of InitClass
     if parser.init_class is None:
