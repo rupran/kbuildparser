@@ -47,12 +47,13 @@ def build_precondition(input_list, additional=None):
 
     ret = DataStructures.Precondition()
     if additional:
-        ret.extend(additional)
+        for x in additional:
+            ret.add_condition(x, no_duplicates=True)
 
     if len(alternatives) > 1:
-        ret.add_condition("(" + alt_string + ")")
+        ret.add_condition("(" + alt_string + ")", no_duplicates=True)
     elif len(alt_string) > 1:
-        ret.add_condition(alt_string)
+        ret.add_condition(alt_string, no_duplicates=True)
 
     return ret
 

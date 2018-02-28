@@ -47,8 +47,10 @@ class VariableStore(dict):
 class Precondition(list):
     """ Class representing a list of preconditions for a file."""
 
-    def add_condition(self, condition):
+    def add_condition(self, condition, no_duplicates=False):
         """ Add a condition to this Precondition."""
+        if no_duplicates and condition in self:
+            return
         self.append(condition)
 
     def __hash__(self):
